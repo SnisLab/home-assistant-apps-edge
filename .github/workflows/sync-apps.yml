@@ -1,0 +1,132 @@
+name: Sync apps
+
+on:
+  workflow_dispatch:
+  repository_dispatch:
+    types:
+      - app-released
+  schedule:
+    - cron: "17 3 * * *"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sync-apps
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    name: Prepare synchronized catalog
+    runs-on: ubuntu-24.04
+    outputs:
+      apps: ${{ steps.catalog.outputs.apps }}
+      changed: ${{ steps.catalog.outputs.changed }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Synchronize apps
+        env:
+          GH_TOKEN: ${{ secrets.ORG_REPOSITORY_TOKEN || github.token }}
+          APP_CHANNEL: edge
+        run: npm run sync
+
+      - name: Validate generated repository
+        run: npm run validate
+
+      - name: Prepare catalog artifacts
+        id: catalog
+        shell: bash
+        run: |
+          apps="$(node -p "JSON.stringify(Object.keys(JSON.parse(require('fs').readFileSync('.generated-apps.json')).apps))")"
+          app_dirs="$(node -p "Object.keys(JSON.parse(require('fs').readFileSync('.generated-apps.json')).apps).join(' ')")"
+          echo "apps=${apps}" >> "${GITHUB_OUTPUT}"
+
+          git add --all
+          if git diff --cached --quiet; then
+            echo "changed=false" >> "${GITHUB_OUTPUT}"
+          else
+            echo "changed=true" >> "${GITHUB_OUTPUT}"
+          fi
+
+          git diff --cached --binary --full-index > sync.patch
+          tar -czf catalog.tar.gz .generated-apps.json ${app_dirs}
+
+      - name: Upload generated catalog
+        if: ${{ steps.catalog.outputs.changed == 'true' }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: synchronized-catalog
+          path: |
+            catalog.tar.gz
+            sync.patch
+          if-no-files-found: error
+          retention-days: 1
+
+  lint:
+    name: Lint ${{ matrix.path }}
+    if: ${{ needs.prepare.outputs.changed == 'true' && needs.prepare.outputs.apps != '[]' }}
+    runs-on: ubuntu-24.04
+    needs:
+      - prepare
+    strategy:
+      fail-fast: false
+      matrix:
+        path: ${{ fromJson(needs.prepare.outputs.apps) }}
+    steps:
+      - name: Download generated catalog
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: synchronized-catalog
+
+      - name: Extract generated catalog
+        run: tar -xzf catalog.tar.gz
+
+      - name: Run Home Assistant app linter
+        uses: frenck/action-app-linter@b9cfd1bc62ba60d2c4fc96317b5f7ada5923f4a7 # v2.21
+        with:
+          path: "./${{ matrix.path }}"
+
+  commit:
+    name: Commit synchronized catalog
+    if: >-
+      ${{
+        always() && needs.prepare.result == 'success' &&
+        needs.prepare.outputs.changed == 'true' &&
+        (
+          (needs.prepare.outputs.apps == '[]' && needs.lint.result == 'skipped') ||
+          (needs.prepare.outputs.apps != '[]' && needs.lint.result == 'success')
+        )
+      }}
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    needs:
+      - prepare
+      - lint
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Download synchronized changes
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: synchronized-catalog
+
+      - name: Apply and commit changes
+        run: |
+          git apply --index --whitespace=error-all sync.patch
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "chore: sync Home Assistant apps"
+          git push

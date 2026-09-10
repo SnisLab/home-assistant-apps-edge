@@ -1,0 +1,17 @@
+{
+  "name": "snislab-home-assistant-apps-edge",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "sync": "node scripts/sync-apps.mjs",
+    "validate": "node scripts/validate-apps.mjs",
+    "test": "npm run validate && node --test"
+  },
+  "dependencies": {
+    "yaml": "^2.9.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

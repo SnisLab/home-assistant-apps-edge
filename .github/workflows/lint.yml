@@ -1,0 +1,66 @@
+name: Lint
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  schedule:
+    - cron: "41 3 * * 1"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Validate repository
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Validate repository
+        run: npm run validate
+
+  find:
+    name: Find apps
+    runs-on: ubuntu-24.04
+    outputs:
+      apps: ${{ steps.apps.outputs.addons_list }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Find app directories
+        id: apps
+        uses: home-assistant/actions/helpers/find-addons@a7c616ce81ccda50150bf1595786c71b1883fabb
+
+  lint:
+    name: Lint ${{ matrix.path }}
+    if: ${{ needs.find.outputs.apps != '[]' }}
+    runs-on: ubuntu-24.04
+    needs:
+      - find
+    strategy:
+      fail-fast: false
+      matrix:
+        path: ${{ fromJson(needs.find.outputs.apps) }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Run Home Assistant app linter
+        uses: frenck/action-app-linter@b9cfd1bc62ba60d2c4fc96317b5f7ada5923f4a7 # v2.21
+        with:
+          path: "./${{ matrix.path }}"
