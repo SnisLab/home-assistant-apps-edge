@@ -159,14 +159,16 @@ async function findAppConfigs(directory, relative = "") {
 }
 
 async function dispatchedApp() {
-  if (process.env.GITHUB_EVENT_NAME !== "repository_dispatch") {
+  const eventName = process.env.APP_EVENT_NAME ?? process.env.GITHUB_EVENT_NAME;
+  const eventPath = process.env.APP_EVENT_PATH ?? process.env.GITHUB_EVENT_PATH;
+  if (eventName !== "repository_dispatch") {
     return undefined;
   }
-  if (!process.env.GITHUB_EVENT_PATH) {
+  if (!eventPath) {
     throw new Error("GITHUB_EVENT_PATH is required for repository_dispatch.");
   }
 
-  const event = JSON.parse(await readFile(process.env.GITHUB_EVENT_PATH, "utf8"));
+  const event = JSON.parse(await readFile(eventPath, "utf8"));
   const payload = event.client_payload ?? {};
   const repositoryName = sourceName(payload.repository);
   const sha = String(payload.sha ?? "");

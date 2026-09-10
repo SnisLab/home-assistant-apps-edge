@@ -61,13 +61,13 @@ jobs:
           MANUAL_IMAGE: ${{ inputs.image }}
         run: |
           node -e 'const fs = require("fs"); fs.writeFileSync(`${process.env.RUNNER_TEMP}/manual-event.json`, JSON.stringify({ client_payload: { repository: process.env.MANUAL_REPOSITORY, version: process.env.MANUAL_VERSION, tag: "edge", sha: process.env.MANUAL_SHA, image: process.env.MANUAL_IMAGE || undefined } }));'
-          echo "GITHUB_EVENT_NAME=repository_dispatch" >> "$GITHUB_ENV"
-          echo "GITHUB_EVENT_PATH=$RUNNER_TEMP/manual-event.json" >> "$GITHUB_ENV"
 
       - name: Synchronize apps
         env:
           GH_TOKEN: ${{ secrets.ORG_REPOSITORY_TOKEN || github.token }}
           APP_CHANNEL: edge
+          APP_EVENT_NAME: ${{ github.event_name == 'workflow_dispatch' && 'repository_dispatch' || github.event_name }}
+          APP_EVENT_PATH: ${{ runner.temp }}/manual-event.json
         run: npm run sync
 
       - name: Validate generated repository
