@@ -60,9 +60,9 @@ jobs:
           MANUAL_SHA: ${{ inputs.sha }}
           MANUAL_IMAGE: ${{ inputs.image }}
         run: |
-          node -e 'const fs = require("fs"); fs.writeFileSync("manual-event.json", JSON.stringify({ client_payload: { repository: process.env.MANUAL_REPOSITORY, version: process.env.MANUAL_VERSION, tag: "edge", sha: process.env.MANUAL_SHA, image: process.env.MANUAL_IMAGE || undefined } }));'
+          node -e 'const fs = require("fs"); fs.writeFileSync(`${process.env.RUNNER_TEMP}/manual-event.json`, JSON.stringify({ client_payload: { repository: process.env.MANUAL_REPOSITORY, version: process.env.MANUAL_VERSION, tag: "edge", sha: process.env.MANUAL_SHA, image: process.env.MANUAL_IMAGE || undefined } }));'
           echo "GITHUB_EVENT_NAME=repository_dispatch" >> "$GITHUB_ENV"
-          echo "GITHUB_EVENT_PATH=$GITHUB_WORKSPACE/manual-event.json" >> "$GITHUB_ENV"
+          echo "GITHUB_EVENT_PATH=$RUNNER_TEMP/manual-event.json" >> "$GITHUB_ENV"
 
       - name: Synchronize apps
         env:
