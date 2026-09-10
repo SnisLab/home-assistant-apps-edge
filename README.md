@@ -98,6 +98,11 @@ auf einen gültigen Commit im App-Repository zeigen:
 }
 ```
 
+Der Edge-Sync kann auch manuell gestartet werden: Im Tab **Actions** den
+Workflow **Sync apps** öffnen und **Run workflow** wählen. Repository, Version,
+vollständigen Commit-SHA und das Edge-Image ausfüllen. Das Image wird gegen
+das Image aus `config.yaml` mit dem Tag `edge` geprüft.
+
 Ein Release-Workflow im `app-*`-Repository kann den Katalog so auslösen:
 
 ```yaml

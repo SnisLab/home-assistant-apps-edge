@@ -2,6 +2,23 @@ name: Sync apps
 
 on:
   workflow_dispatch:
+    inputs:
+      repository:
+        description: "Source repository, for example app-example"
+        required: true
+        type: string
+      version:
+        description: "App version from config.yaml"
+        required: true
+        type: string
+      sha:
+        description: "Full commit SHA to synchronize"
+        required: true
+        type: string
+      image:
+        description: "Edge image, for example ghcr.io/snislab/example:edge"
+        required: true
+        type: string
   repository_dispatch:
     types:
       - app-released
@@ -34,6 +51,18 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Prepare manual edge dispatch
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        env:
+          MANUAL_REPOSITORY: ${{ inputs.repository }}
+          MANUAL_VERSION: ${{ inputs.version }}
+          MANUAL_SHA: ${{ inputs.sha }}
+          MANUAL_IMAGE: ${{ inputs.image }}
+        run: |
+          node -e 'const fs = require("fs"); fs.writeFileSync("manual-event.json", JSON.stringify({ client_payload: { repository: process.env.MANUAL_REPOSITORY, version: process.env.MANUAL_VERSION, tag: "edge", sha: process.env.MANUAL_SHA, image: process.env.MANUAL_IMAGE || undefined } }));'
+          echo "GITHUB_EVENT_NAME=repository_dispatch" >> "$GITHUB_ENV"
+          echo "GITHUB_EVENT_PATH=$GITHUB_WORKSPACE/manual-event.json" >> "$GITHUB_ENV"
 
       - name: Synchronize apps
         env:
