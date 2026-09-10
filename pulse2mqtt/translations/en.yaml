@@ -1,0 +1,43 @@
+configuration:
+  pulse_host:
+    name: Pulse host
+    description: Hostname or IP address of the Tibber Pulse.
+  pulse_username:
+    name: Pulse username
+    description: HTTP username used to access the Tibber Pulse.
+  pulse_password:
+    name: Pulse password
+    description: HTTP password used to access the Tibber Pulse.
+  pulse_node:
+    name: Pulse node
+    description: Node ID to read, normally 1.
+  battery_profile:
+    name: Battery profile
+    description: Voltage profile of the two installed AA cells. Regulated 1.5 V cells are represented as either 80% or 0%.
+  data_topic:
+    name: Data topic
+    description: MQTT topic for energy and power readings.
+  metrics_topic:
+    name: Metrics topic
+    description: MQTT topic for diagnostic readings.
+  discovery_prefix:
+    name: Discovery prefix
+    description: Home Assistant MQTT Discovery prefix.
+  device_id:
+    name: Device ID
+    description: Stable identifier for the Home Assistant device and entities.
+  device_name:
+    name: Device name
+    description: Name shown for the device in Home Assistant.
+  mqtt_host:
+    name: MQTT host
+    description: Optional external broker. Leave empty to use the Home Assistant MQTT service.
+  mqtt_port:
+    name: MQTT port
+    description: Port of the optional external MQTT broker.
+  mqtt_username:
+    name: MQTT username
+    description: Username for the optional external MQTT broker.
+  mqtt_password:
+    name: MQTT password
+    description: Password for the optional external MQTT broker.

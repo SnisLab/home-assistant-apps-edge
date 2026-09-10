@@ -1,0 +1,79 @@
+#!/usr/bin/with-contenv bashio
+
+set -euo pipefail
+umask 077
+
+pulse_host="$(bashio::config 'pulse_host')"
+pulse_username="$(bashio::config 'pulse_username')"
+pulse_password="$(bashio::config 'pulse_password')"
+pulse_node="$(bashio::config 'pulse_node')"
+battery_profile="$(bashio::config 'battery_profile')"
+data_topic="$(bashio::config 'data_topic')"
+metrics_topic="$(bashio::config 'metrics_topic')"
+discovery_prefix="$(bashio::config 'discovery_prefix')"
+device_id="$(bashio::config 'device_id')"
+device_name="$(bashio::config 'device_name')"
+
+if bashio::config.has_value 'mqtt_host'; then
+    mqtt_host="$(bashio::config 'mqtt_host')"
+    mqtt_port="$(bashio::config 'mqtt_port' '1883')"
+    mqtt_username="$(bashio::config 'mqtt_username' '')"
+    mqtt_password="$(bashio::config 'mqtt_password' '')"
+    bashio::log.info "Using the configured external MQTT broker"
+elif bashio::services.available 'mqtt'; then
+    mqtt_host="$(bashio::services 'mqtt' 'host')"
+    mqtt_port="$(bashio::services 'mqtt' 'port')"
+    mqtt_username="$(bashio::services 'mqtt' 'username')"
+    mqtt_password="$(bashio::services 'mqtt' 'password')"
+    bashio::log.info "Using the Home Assistant MQTT service"
+else
+    bashio::exit.nok "No Home Assistant MQTT service is available and mqtt_host is not configured"
+fi
+
+mkdir -p /tmp/pulse2mqtt
+
+jq -n \
+    --arg mqtt_host "${mqtt_host}" \
+    --argjson mqtt_port "${mqtt_port}" \
+    --arg mqtt_username "${mqtt_username}" \
+    --arg mqtt_password "${mqtt_password}" \
+    --arg data_topic "${data_topic}" \
+    --arg metrics_topic "${metrics_topic}" \
+    --arg pulse_host "${pulse_host}" \
+    --arg pulse_username "${pulse_username}" \
+    --arg pulse_password "${pulse_password}" \
+    --argjson pulse_node "${pulse_node}" \
+    --arg battery_profile "${battery_profile}" \
+    --arg discovery_prefix "${discovery_prefix}" \
+    --arg device_id "${device_id}" \
+    --arg device_name "${device_name}" \
+    '{
+        service: {
+            mqtt: {
+                host: $mqtt_host,
+                port: $mqtt_port,
+                user: $mqtt_username,
+                pass: $mqtt_password,
+                topics: {
+                    data: $data_topic,
+                    metrics: $metrics_topic
+                }
+            },
+            pulse: {
+                user: $pulse_username,
+                password: $pulse_password,
+                ip: $pulse_host,
+                node: $pulse_node,
+                battery_profile: $battery_profile
+            },
+            home_assistant: {
+                discovery: true,
+                discovery_prefix: $discovery_prefix,
+                device_id: $device_id,
+                device_name: $device_name
+            }
+        }
+    }' > /tmp/pulse2mqtt/settings.yaml
+
+bashio::log.info "Starting Pulse2MQTT"
+exec env PULSE2MQTT_CONFIG=/tmp/pulse2mqtt/settings.yaml /usr/local/bin/pulse2mqtt

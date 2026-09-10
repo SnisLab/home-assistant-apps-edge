@@ -1,0 +1,39 @@
+name: Pulse2MQTT
+version: "0.4.0"
+slug: pulse2mqtt
+description: Read a Tibber Pulse and expose it as an MQTT device in Home Assistant
+url: https://github.com/SnisLab/app-pulse2mqtt
+arch:
+  - aarch64
+  - amd64
+init: false
+stage: experimental
+services:
+  - mqtt:want
+image: ghcr.io/snislab/app-pulse2mqtt
+options:
+  pulse_host: ""
+  pulse_username: admin
+  pulse_password: ""
+  pulse_node: 1
+  battery_profile: regulated_1_5v
+  data_topic: pulse2mqtt/data
+  metrics_topic: pulse2mqtt/metrics
+  discovery_prefix: homeassistant
+  device_id: pulse2mqtt
+  device_name: Tibber Pulse
+schema:
+  pulse_host: str
+  pulse_username: str
+  pulse_password: password
+  pulse_node: int(1,)
+  battery_profile: list(alkaline|lfb_aa|nimh_1_2v|regulated_1_5v)
+  data_topic: str
+  metrics_topic: str
+  discovery_prefix: str
+  device_id: str
+  device_name: str
+  mqtt_host: str?
+  mqtt_port: port?
+  mqtt_username: str?
+  mqtt_password: password?
