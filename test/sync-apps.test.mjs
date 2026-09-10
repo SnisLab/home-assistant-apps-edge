@@ -32,7 +32,7 @@ const server = createServer((request, response) => {
     response.end(JSON.stringify({ tag_name: "v1.0.0" }));
   } else if (url.pathname === "/repos/SnisLab/app-example/commits/v1.0.0") {
     response.end(JSON.stringify({ sha }));
-  } else if (url.pathname === "/repos/SnisLab/app-example/commits/edge") {
+  } else if (url.pathname === `/repos/SnisLab/app-example/commits/${sha}`) {
     response.end(JSON.stringify({ sha }));
   } else if (url.pathname === "/repos/SnisLab/app-example/commits/v2.0.0") {
     response.end(JSON.stringify({ sha: "ffffffffffffffffffffffffffffffffffffffff" }));
@@ -190,7 +190,7 @@ test("rejects a dispatch whose tag does not resolve to its SHA", async () => {
         sha: "ffffffffffffffffffffffffffffffffffffffff",
         image: "ghcr.io/snislab/example:edge",
       }),
-      /does not resolve to client_payload.sha/,
+      /GitHub request failed \(404\)/,
     );
   } finally {
     await rm(catalog, { recursive: true, force: true });

@@ -187,7 +187,7 @@ async function dispatchedApp() {
   if (repository.archived || repository.disabled) {
     throw new Error(`${repository.full_name} is not an active source repository.`);
   }
-  const tagSha = await resolveRef(repositoryName, tag);
+  const tagSha = await resolveRef(repositoryName, edgeChannel ? sha : tag);
   if (tagSha !== sha) {
     throw new Error(`client_payload.tag ${tag} does not resolve to client_payload.sha.`);
   }

@@ -85,8 +85,8 @@ Der Dispatch muss diese Daten enthalten:
 }
 ```
 
-Das App-Repository muss dafür einen `edge`-Ref besitzen. Der SHA muss auf
-diesen Ref zeigen:
+Der Dispatch verwendet `edge` als logischen Kanal. Der übermittelte SHA muss
+auf einen gültigen Commit im App-Repository zeigen:
 
 ```json
 {
